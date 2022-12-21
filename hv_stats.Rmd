@@ -24,7 +24,7 @@ ha = 10000                    # ha (in m^2)
 
 # Import file
 ```{r}
-df <- read_csv("/Users/shuyao/Documents/hv_stats.csv", show_col_types = F)
+df <- read_csv("/Users/shuyao/Documents/GitHub/fluffy-spatzle/hv_stats.csv", show_col_types = F)
 ```
 
 # Tidy data
