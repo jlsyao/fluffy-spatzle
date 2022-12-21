@@ -1,0 +1,81 @@
+---
+title: "hv_stat"
+author: "Shu Yao"
+date: '2022-12-21'
+output: 
+  html_document:
+    toc: TRUE
+---
+
+# Libraries
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+# Parameters
+```{r}
+kph = 10                      # kilometers per hour
+mpermin = kph * 1000 / 60     # meters per minute
+onepasstime = 1/mpermin * 100 # time to cross the width of a ha (min)
+
+ha = 10000                    # ha (in m^2)
+```
+
+# Import file
+```{r}
+df <- read_csv("/Users/shuyao/Documents/hv_stats.csv", show_col_types = F)
+```
+
+# Tidy data
+```{r}
+df <- df %>% 
+  replace(is.na(.), 0) %>%
+  mutate(npass = 100 / width_m,                     # number of passes needed for 1 ha
+         onehatime = npass * onepasstime,           # total time needed for 1 ha 
+         cost_total = cost_hv + cost_hd + cost_td,
+         costjump = (cost_total) - lag(cost_total),
+         efficacyjump = (onehatime) - lag(onehatime))
+```
+
+# Plot
+```{r}
+ggplot(data = df,
+       aes(x = cost_total,
+           y = onehatime, 
+           colour = hd)) +
+  geom_hline(yintercept = 5, lty = "dotted", color = "gray45") +
+  geom_line(size =.8, colour = "black") +
+  geom_point(size = 3) +
+  #geom_smooth(method='loess', formula= y~x, aes(group=1), se=F, colour="black", lty="dashed") +
+  xlab("Cost ($)") +
+  ylab("Efficiency (min/ha)") +
+  scale_y_continuous(breaks = seq(0,16, by=2)) +
+  coord_cartesian(ylim = c(0,16), xlim = c(0, 700000), expand = F) +
+  theme_bw() +
+  theme(legend.position = "right",
+        panel.grid.minor = element_blank())
+```
+```{r, fig.width=8, fig.height=5}
+ggplot(data = df,
+       aes(y = costjump/abs(efficacyjump),
+           x = fct_inorder(hd), 
+           colour = hd,
+           shape = hv)) +
+  #geom_line(size =.8, colour = "black") +
+  geom_point(size = 3) +
+  geom_text(aes(label = paste("min/ha =", signif(onehatime, 3)),  y = costjump/abs(efficacyjump)+10000), size = 3, hjust = 1, colour = "black") +
+  geom_text(aes(label = paste("d$ =" , signif(costjump, 3)),  y = costjump/abs(efficacyjump)+19000), size = 3, hjust = 1, colour = "black") +
+  geom_text(aes(label = paste("$ =" , cost_total),  y = costjump/abs(efficacyjump)+28000), size = 3, hjust = 1, colour = "black") +
+  #geom_smooth(method='loess', formula= y~x, aes(group=1), se=F, colour="black", lty="dashed") +
+  xlab("Header") +
+  ylab("dCost / dEfficiency ") +
+  scale_shape_manual(name = "Harvester", values = c(1, 2, 3, 4, 5, 6)) +
+  scale_color_manual(name = "Header", values = c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")) +
+  theme_bw() +
+  theme(legend.position = "right",
+        panel.grid = element_line(colour = "gray95"),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 7))
+
+```
+
